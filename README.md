@@ -74,3 +74,11 @@ uvx --from "git+https://github.com/agentskills/agentskills#subdirectory=skills-r
 ```
 
 Scripts run as `uv run .agents/skills/<skill>/scripts/<script>.py`; use `--help` for options.
+
+## References 
+
+Dubois, J., Luettgau, L., et al. (2026). Ask don't tell: Reducing sycophancy in large language models. arXiv:2602.23971.
+
+Fanous, A., Goldberg, J., Agarwal, A., et al. (2025). SycEval: Evaluating LLM Sycophancy. Proceedings of the AAAI/ACM Conference on AI, Ethics, and Society (AIES 2025), arXiv:2502.08177.
+
+Sharma, M., Tong, M., Korbak, T., et al. (2024). Towards Understanding Sycophancy in Language Models. ICLR 2024, arXiv:2310.13548
