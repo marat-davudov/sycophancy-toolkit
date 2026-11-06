@@ -16,15 +16,15 @@ Two read-only, local steps. Commands run from the repository root. Output defaul
    `uv run .agents/skills/conversation-extraction/scripts/find_conversations.py [--no-aider] [--output-dir DIR]`
    Writes `conversation_files.csv` (`tool, path, size_bytes, modified`) and `summary.json`. Use `--no-aider` to skip the slow home-directory scan unless the user uses Aider. Only default locations are checked; to add a tool, append to `TARGETS` in the script.
 2. **Extract** messages from the listed files:
-   `uv run .agents/skills/conversation-extraction/scripts/extract_messages.py [output/conversations/conversation_files.csv] [--tool SUBSTRING ...] [--output-dir DIR]`
-   Writes `conversation_messages.csv` (`conversation_id, tool, role, turn_index, text`) and `extraction_report.json`. Use `--tool` (repeatable, case-insensitive) when the user wants only some tools.
-3. **Report**: conversations and exchanges extracted, which tools were found, and anything skipped (see below), plus the output paths.
+   `uv run .agents/skills/conversation-extraction/scripts/extract_messages.py [output/conversations/conversation_files.csv] [--tool SUBSTRING ...] [--no-actions] [--output-dir DIR]`
+   Writes `conversation_messages.csv` (`conversation_id, tool, role, turn_index, timestamp, model, text`) and `extraction_report.json` (counts per tool with date ranges, and every skipped file with its tool and reason). Use `--tool` (repeatable, case-insensitive) when the user wants only some tools. Assistant rows end with an `[Actions]` block summarising the edits, commands and lookups made in that exchange, so scoring can see what was implemented; `--no-actions` leaves it out.
+3. **Report**: conversations and exchanges per tool with date ranges, anything skipped (see below), and the output paths. The printed summary is enough; `output/` is gitignored, so editor search tools won't find these files. Open them by path.
 
 ## Supported formats and limits
 
-See [formats.md](references/formats.md). Supported: VS Code-family `chatSessions/*.json` and Copilot CLI `events.jsonl`. Files in other formats (e.g. `state.vscdb`, Claude Code, Codex) are located in step 1 but skipped in step 2 and listed in `extraction_report.json`; tell the user which tools are affected rather than guessing a format. Add a new format by writing an extractor and registering it in `pick_extractor`, after inspecting a real file's structure.
+See [formats.md](references/formats.md). Supported: VS Code-family `chatSessions/*.json` and `chatSessions/*.jsonl` (the newer mutation-log format), and Copilot CLI `events.jsonl`. When a session exists in both VS Code formats, the copy with more exchanges is kept. Files in other formats (e.g. `state.vscdb`, Claude Code, Codex) are located in step 1 but skipped in step 2 and listed in `extraction_report.json`; tell the user which tools are affected rather than guessing a format. Add a new format by writing an extractor and registering it in `pick_extractor`, after inspecting a real file's structure (print keys and types, not content).
 
-Exchanges whose assistant reply was not captured get the text `[No assistant text captured in the exported response.]`; report how many.
+Exchanges with neither assistant text nor actions get the text `[No assistant text captured in the exported response.]`; report how many.
 
 ## Rules
 
@@ -35,4 +35,4 @@ Exchanges whose assistant reply was not captured get the text `[No assistant tex
 
 ## Next step
 
-Hand `conversation_messages.csv` to the `sycophancy-analysis` skill. Its column names are auto-detected.
+Hand `conversation_messages.csv` to the `sycophancy-analysis` skill. Its column names (including `timestamp`, `tool` and `model`, used for selection and grouping) are auto-detected.

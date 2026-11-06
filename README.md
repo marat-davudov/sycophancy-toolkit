@@ -20,20 +20,20 @@ Requirements: an agent that supports Agent Skills (skills live in `.agents/skill
    - "Audit my past AI chats for sycophancy."
    - "Analyse `/path/to/messages.csv` for sycophancy." (skips extraction)
    - "Extract my VS Code and Copilot conversations to a CSV." (extraction only)
-3. Read `output/analysis/summary.md`.
+3. Read `output/runs/<timestamp>/summary.md`.
 
-The audit asks before scoring a large set (more than about 50 conversations), since scoring costs one model pass per conversation.
+The audit asks you to pick a scope (most recent N, a date range, or one tool) before scoring a large set, since scoring costs one model pass per conversation.
 
 [AGENTS.md](AGENTS.md) tells agents in this repo to apply `sycophancy-guard` to every message.
 
 ## How it works
 
 ```
-find_conversations.py      extract_messages.py        sycophancy_csv.py prepare
-chat stores on disk  ──►  conversation_files.csv  ──►  conversation_messages.csv  ──►  transcripts (.md)
-                                                                                          │
-                                           summary.md / summary.csv  ◄──  analysis/<id>.json  ◄──  model scoring (rubric)
-                                                  sycophancy_csv.py aggregate     sycophancy_csv.py validate
+find_conversations.py      extract_messages.py                      sycophancy_csv.py prepare (--limit/--since/--tool)
+chat stores on disk  ──►  conversation_files.csv  ──►  conversation_messages.csv  ──►  run folder: transcripts + run.json
+                                                                                          │ plan-batches
+          summary.md / summary.csv / conversations.csv  ◄──  analysis/<id>.json  ◄──  model scoring (rubric), in parallel batches
+                         aggregate                       validate (+ optional recheck)
 ```
 
 Each User→Assistant exchange is scored on three parts ([full rubric](.agents/skills/sycophancy-analysis/references/rubric.md)):
@@ -42,18 +42,21 @@ Each User→Assistant exchange is scored on three parts ([full rubric](.agents/s
 - **Assistant sycophancy (0-12):** flattery, avoiding disagreement, capitulating after pushback, and building a flawed premise.
 - **Technical impact (0-3):** whether it hurt the code, from none to broken or insecure.
 
-Each turn also gets a sycophancy type and an "ask, don't tell" rewrite of the prompt that would have avoided the problem. The `validate` step checks every transcript has a complete, correctly summed result before anything is aggregated.
+Each turn also gets a sycophancy type and an "ask, don't tell" rewrite of the prompt that would have avoided the problem. Transcripts include a short `[Actions]` summary of the files the assistant edited and the commands it ran, so the score reflects what was built, not just what was said. The `validate` step checks every transcript has a complete, correctly summed result whose quotes line up with the right turns before anything is aggregated.
 
 ## Output
 
 Written to `output/` in the current directory unless you name another folder:
 
-- `output/conversations/`: `conversation_files.csv`, `conversation_messages.csv`, `extraction_report.json`, one transcript per conversation.
-- `output/analysis/`: one JSON per conversation, plus `summary.md` and `summary.csv`.
+- `output/conversations/`: `conversation_files.csv`, `conversation_messages.csv`, `extraction_report.json`.
+- `output/runs/<timestamp>/`: one folder per scoring run with `run.json`, `transcripts/`, `analysis/`, `validation.json` and the results:
+  - `summary.md`: headline, scope and coverage, your prompting habits, how the assistant responded to pressure, incidents with better prompts, breakdowns by tool and model, conversations to review, and caveats.
+  - `summary.csv`: one row per turn with every score component.
+  - `conversations.csv`: one row per conversation.
 
 ## Supported chat formats
 
-Extraction currently reads VS Code-family `chatSessions/*.json` (VS Code, Insiders, VSCodium, Cursor, Windsurf) and GitHub Copilot CLI `events.jsonl`. Other tools are located but skipped and listed in `extraction_report.json`. To add one, see [formats.md](.agents/skills/conversation-extraction/references/formats.md).
+Extraction currently reads VS Code-family `chatSessions/*.json` and `*.jsonl` (VS Code, Insiders, VSCodium, Cursor, Windsurf) and GitHub Copilot CLI `events.jsonl`. Other tools are located but skipped and listed in `extraction_report.json`. To add one, see [formats.md](.agents/skills/conversation-extraction/references/formats.md).
 
 ## Privacy
 
@@ -61,9 +64,9 @@ Everything runs locally and the scripts send nothing anywhere. Transcripts conta
 
 ## Limitations
 
-- Scores are model judgments, so treat them as indicative, not exact. Spot-check the highest-impact turns.
+- Scores are model judgments, so treat them as indicative, not exact. Run `recheck` to measure agreement, and spot-check the incidents.
 - Some exports drop assistant replies; those exchanges are scored as no sycophancy and counted in the report.
-- Only two chat formats are supported so far.
+- Only VS Code-family and Copilot CLI formats are supported so far.
 
 ## Contributing
 

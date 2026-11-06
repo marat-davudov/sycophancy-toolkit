@@ -49,6 +49,7 @@ TARGETS = [
 for app in VSCODE_LIKE:
     base = APPDATA / app / "User"
     TARGETS.append((f"{app} chat sessions", base / "workspaceStorage", "*/chatSessions/*.json"))
+    TARGETS.append((f"{app} chat sessions", base / "workspaceStorage", "*/chatSessions/*.jsonl"))
     TARGETS.append((f"{app} editor state (chat DB)", base / "globalStorage", "state.vscdb"))
     TARGETS.append((f"{app} Cline/Roo/Continue tasks", base / "globalStorage", "*/tasks/*/api_conversation_history.json"))
 
